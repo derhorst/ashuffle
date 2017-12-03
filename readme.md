@@ -1,8 +1,6 @@
 ashuffle
 ========
 
-> __Maintainer's Note:__ Even though there have been no new commits on this repo in over a year, it is not dead, it just isn't broken yet. I actively maintain this repo, and use this software daily. If you find any bugs, please open an issue.
-
 Table of Contents:
 * [features](#features)
     * [usage](#usage)
@@ -31,7 +29,7 @@ In the second (more interesting) mode, ashuffle will wait
 until the last song in the queue has finished playing, at which point it will
 add another song to the queue. In this creates a 'stream of music'
 where songs will be continuously played, at random, to infinity.
-Additionally, since ashuffle only adds one song at a time, and only adds that song 
+Additionally, since ashuffle only adds one song at a time, and only adds that song
 once the last song in the playlist has finished playing, you still retain
 control over your queue. This way, you can add some song you want to hear
 to the queue, and the random songs will simply continue afterwards.
@@ -42,6 +40,15 @@ drain cpu polling to check if the current song has advanced.
 To use the second mode, run ashuffle without the `--only` argument.
 
     $ ashuffle
+
+To use a queue window, run ashuffle with the `--window` argument plus a number.
+The playlist queue will always show the given number of tracks. The currently playing track
+is in the middle of the queue.
+For example:
+
+    $ ashuffle --window 21   # ashuffle --window <size of the queue window>
+
+keeps the last 10 songs in the queue and adds the next 10.
 
 ### running in a non-standard configuration
 
@@ -83,6 +90,7 @@ usage: ashuffle -h -n [-e PATTERN ...] [-o NUMBER] [-f FILENAME]
 
 Optional Arguments:
    -e,--exclude  Specify things to remove from shuffle (think blacklist).
+   -w,--window   Specify the number of songs stored in the queue.
    -o,--only     Instead of continuously adding songs, just add 'NUMBER'
                  songs and then exit.
    -h,-?,--help  Display this help message.
@@ -99,8 +107,8 @@ See included `readme.md` file for PATTERN syntax.
 
 ## patterns
 
-Patterns are a list of key-value pairs given to the `--exclude` flag. A pair is 
-composed of a 'field' and a 'value'. A field is the name 
+Patterns are a list of key-value pairs given to the `--exclude` flag. A pair is
+composed of a 'field' and a 'value'. A field is the name
 of an MPD tag (e.g. artist, title, album) to match on (case insensitive) and
 'value' is a string to match against that field. So, if I wanted to exclude
 MGMT's album 'Congratulations' in  the shuffle I could supply a command
@@ -108,16 +116,16 @@ line like the following:
 
     $ ashuffle --exclude artist MGMT album "Congratulations"
 
-Since typing in an exact match for all songs could become quite cumbersome, the 
+Since typing in an exact match for all songs could become quite cumbersome, the
 'value' field will match on substrings, so you only have to specify part of the
 search string. For example, if we wanted to match Arctic Monkeys album
 'Whatever People Say I Am, That's What I'm Not' we could shorten that to this:
 
     $ ashuffle --exclude artist arctic album whatever
 
-Multiple `--exclude` flags can be given, the AND result 
-of all flags will be used to match a given song. For example, if we wanted to 
-exclude songs by MGMT and songs by the Arctic Monkeys, we 
+Multiple `--exclude` flags can be given, the AND result
+of all flags will be used to match a given song. For example, if we wanted to
+exclude songs by MGMT and songs by the Arctic Monkeys, we
 could write:
 
     $ ashuffle --exclude artist MGMT --exclude artist arctic
@@ -148,9 +156,9 @@ start noticing song order once the random-list wraps around.
 ashuffle's approach is an attempt at a happy medium between these two approaches.
 Essentially, it keeps two lists of songs, a 'pool' of the songs it's shuffling,
 and a 'window' which is a short, ordered, playlist of songs. When the program
-starts, ashuffle builds the window randomly by taking songs out of the pool, 
+starts, ashuffle builds the window randomly by taking songs out of the pool,
 and adding them to the window. When a new random song is added to the MPD
-queue, the 'top' song of the window, is taken off, added to the queue, and 
+queue, the 'top' song of the window, is taken off, added to the queue, and
 then put back into the pool. Then another song is added to the window
 so that the next request can be fulfilled.
 
