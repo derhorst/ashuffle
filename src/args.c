@@ -63,6 +63,7 @@ int flush_rule(enum parse_state state,
 
 int ashuffle_init(struct ashuffle_options * opts) {
     opts->queue_only = 0;
+    opts->queue_window = 0;
     opts->file_in = NULL;
     opts->check_uris = true;
     list_init(&opts->ruleset);
@@ -154,7 +155,7 @@ int ashuffle_options(struct ashuffle_options * opts,
 
 void ashuffle_help(FILE * output) {
     fputs(
-    "usage: ashuffle -h -n [-e PATTERN ...] [-o NUMBER] [-f FILENAME]\n"
+    "usage: ashuffle -h -n [-e PATTERN ...] [-w NUMBER] [-o NUMBER] [-f FILENAME]\n"
     "\n"
     "Optional Arguments:\n"
     "   -e,--exclude  Specify things to remove from shuffle (think blacklist).\n"
