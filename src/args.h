@@ -10,13 +10,14 @@ struct ashuffle_options {
     unsigned queue_only;
     FILE * file_in;
     bool check_uris;
+    unsigned queue_window;
 };
 
 int ashuffle_init(struct ashuffle_options *);
 
-/* parse the options in to the 'ashuffle options' structure. 
+/* parse the options in to the 'ashuffle options' structure.
  * Returns 0 on success, -1 for failure. */
-int ashuffle_options(struct ashuffle_options *, 
+int ashuffle_options(struct ashuffle_options *,
                      int argc, char * argv[]);
 
 void ashuffle_help(FILE * output_stream);

@@ -12,7 +12,7 @@
 
 /* Enum representing the various state of the parser */
 enum parse_state {
-    NO_STATE, RULE, RULE_VALUE, QUEUE, IFILE
+    NO_STATE, RULE, RULE_VALUE, QUEUE, WINDOW, IFILE
 };
 
 /* check and see if 'to_check' matches any of 'count' given
@@ -51,8 +51,8 @@ bool state_can_trans(enum parse_state state) {
 
 /* if we're in a correct state, then add the rule to the
  * ruleset in the list of options */
-int flush_rule(enum parse_state state, 
-               struct ashuffle_options * opts, 
+int flush_rule(enum parse_state state,
+               struct ashuffle_options * opts,
                struct song_rule * rule) {
     if (state == RULE && rule->matchers.length > 0) {
         /* add the rule to the ruleset */
@@ -69,7 +69,7 @@ int ashuffle_init(struct ashuffle_options * opts) {
     return 0;
 }
 
-int ashuffle_options(struct ashuffle_options * opts, 
+int ashuffle_options(struct ashuffle_options * opts,
                      int argc, char * argv[]) {
     /* State for the state machine */
     enum parse_state state = NO_STATE;
@@ -79,7 +79,7 @@ int ashuffle_options(struct ashuffle_options * opts,
     struct song_rule rule;
 
     int type_flag = -1;
-    
+
     for (int i = 1; i < argc; i++) {
         transable = state_can_trans(state);
         if (transable) {
@@ -98,6 +98,9 @@ int ashuffle_options(struct ashuffle_options * opts,
             flush_rule(state, opts, &rule);
             opts->check_uris = false;
             state = NO_STATE;
+        } else if (transable && opts->queue_window == 0 && check_flags(argv[i], 2, "--window", "-w")) {
+            flush_rule(state, opts, &rule);
+            state = WINDOW;
         } else if (transable && opts->queue_only == 0 && check_flags(argv[i], 2, "--only", "-o")) {
             flush_rule(state, opts, &rule);
             state = QUEUE;
@@ -116,6 +119,14 @@ int ashuffle_options(struct ashuffle_options * opts,
             /* Make sure we got a valid queue number */
             if (errno == EINVAL || errno == ERANGE) {
                 fputs("Error converting queue length to integer.\n", stderr);
+                return -1;
+            }
+            state = NO_STATE;
+        } else if (state == WINDOW) {
+            opts->queue_window = (unsigned) strtoul(argv[i], NULL, 10);
+            /* Make sure we got a valid queue number */
+            if (errno == EINVAL || errno == ERANGE) {
+                fputs("Error converting queue window length to integer.\n", stderr);
                 return -1;
             }
             state = NO_STATE;
@@ -147,6 +158,7 @@ void ashuffle_help(FILE * output) {
     "\n"
     "Optional Arguments:\n"
     "   -e,--exclude  Specify things to remove from shuffle (think blacklist).\n"
+    "   -w,--window   Specify the number of songs stored in the queue.\n"
     "   -o,--only     Instead of continuously adding songs, just add 'NUMBER'\n"
     "                 songs and then exit.\n"
     "   -h,-?,--help  Display this help message.\n"
@@ -160,4 +172,3 @@ void ashuffle_help(FILE * output) {
     "                 MPD library.\n"
     "See included `readme.md` file for PATTERN syntax.\n", output);
 }
-
