@@ -42,13 +42,20 @@ To use the second mode, run ashuffle without the `--only` argument.
     $ ashuffle
 
 To use a queue window, run ashuffle with the `--window` argument plus a number.
-The playlist queue will always show the given number of tracks. The currently playing track
-is in the middle of the queue.
+The playlist queue will always show the given number of tracks. The currently
+playing track is in the middle of the queue.
 For example:
 
     $ ashuffle --window 21   # ashuffle --window <size of the queue window>
 
 keeps the last 10 songs in the queue and adds the next 10.
+
+To play all songs of the album or artist, currently playing run ashuffle with the
+`--add-current` argument. The songs are inserted after the currently playing
+song (and not shuffled).
+For example:
+
+    $ ashuffle --add-current album   # ashuffle --add-current <album | artist>
 
 ### running in a non-standard configuration
 
@@ -89,19 +96,21 @@ you to shuffle over songs that are not in your library.
 usage: ashuffle -h -n [-e PATTERN ...] [-o NUMBER] [-f FILENAME]
 
 Optional Arguments:
-   -e,--exclude  Specify things to remove from shuffle (think blacklist).
-   -w,--window   Specify the number of songs stored in the queue.
-   -o,--only     Instead of continuously adding songs, just add 'NUMBER'
-                 songs and then exit.
-   -h,-?,--help  Display this help message.
-   -f,--file     Use MPD URI's found in 'file' instead of using the entire MPD
-                 library. You can supply `-` instead of a filename to retrive
-                 URI's from standard in. This can be used to pipe song URI's
-                 from another program into ashuffle.
-   -n,--nocheck  When reading URIs from a file, don't check to ensure that
-                 the URIs match the given exclude rules. This option is most
-                 helpful when shuffling songs with -f, that aren't in the
-                 MPD library.
+   -e,--exclude      Specify things to remove from shuffle (think blacklist).
+   -a,--add-current  Add all songs of the album or artist which is currently
+                     playing to the playback queue i.e., '-a album'.\n"
+   -w,--window       Specify the number of songs stored in the queue.
+   -o,--only         Instead of continuously adding songs, just add 'NUMBER'
+                     songs and then exit.
+   -h,-?,--help      Display this help message.
+   -f,--file         Use MPD URI's found in 'file' instead of using the entire MPD
+                     library. You can supply `-` instead of a filename to retrive
+                     URI's from standard in. This can be used to pipe song URI's
+                     from another program into ashuffle.
+   -n,--nocheck      When reading URIs from a file, don't check to ensure that
+                     the URIs match the given exclude rules. This option is most
+                     helpful when shuffling songs with -f, that aren't in the
+                     MPD library.
 See included `readme.md` file for PATTERN syntax.
 ```
 

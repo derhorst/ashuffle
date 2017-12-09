@@ -7,6 +7,7 @@
 
 struct ashuffle_options {
     struct list ruleset;
+    char * add_current;
     unsigned queue_only;
     FILE * file_in;
     bool check_uris;

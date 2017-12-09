@@ -12,7 +12,7 @@
 
 /* Enum representing the various state of the parser */
 enum parse_state {
-    NO_STATE, RULE, RULE_VALUE, QUEUE, WINDOW, IFILE
+    NO_STATE, RULE, RULE_VALUE, QUEUE, WINDOW, ADD_CURRENT, IFILE
 };
 
 /* check and see if 'to_check' matches any of 'count' given
@@ -102,6 +102,8 @@ int ashuffle_options(struct ashuffle_options * opts,
         } else if (transable && opts->queue_window == 0 && check_flags(argv[i], 2, "--window", "-w")) {
             flush_rule(state, opts, &rule);
             state = WINDOW;
+        } else if(transable && opts->add_current == NULL && check_flags(argv[i], 2, "--add-current", "-a")) {
+            state = ADD_CURRENT;
         } else if (transable && opts->queue_only == 0 && check_flags(argv[i], 2, "--only", "-o")) {
             flush_rule(state, opts, &rule);
             state = QUEUE;
@@ -125,6 +127,14 @@ int ashuffle_options(struct ashuffle_options * opts,
             state = NO_STATE;
         } else if (state == WINDOW) {
             opts->queue_window = (unsigned) strtoul(argv[i], NULL, 10);
+            /* Make sure we got a valid queue number */
+            if (errno == EINVAL || errno == ERANGE) {
+                fputs("Error converting queue window length to integer.\n", stderr);
+                return -1;
+            }
+            state = NO_STATE;
+        } else if (state == ADD_CURRENT) {
+            opts->add_current = argv[i];
             /* Make sure we got a valid queue number */
             if (errno == EINVAL || errno == ERANGE) {
                 fputs("Error converting queue window length to integer.\n", stderr);
@@ -155,21 +165,23 @@ int ashuffle_options(struct ashuffle_options * opts,
 
 void ashuffle_help(FILE * output) {
     fputs(
-    "usage: ashuffle -h -n [-e PATTERN ...] [-w NUMBER] [-o NUMBER] [-f FILENAME]\n"
+    "usage: ashuffle -h -n [-e PATTERN ...] [-a  PATTERN ...] [-w NUMBER] [-o NUMBER] [-f FILENAME]\n"
     "\n"
     "Optional Arguments:\n"
-    "   -e,--exclude  Specify things to remove from shuffle (think blacklist).\n"
-    "   -w,--window   Specify the number of songs stored in the queue.\n"
-    "   -o,--only     Instead of continuously adding songs, just add 'NUMBER'\n"
-    "                 songs and then exit.\n"
-    "   -h,-?,--help  Display this help message.\n"
-    "   -f,--file     Use MPD URI's found in 'file' instead of using the entire MPD\n"
-    "                 library. You can supply `-` instead of a filename to retrive\n"
-    "                 URI's from standard in. This can be used to pipe song URI's\n"
-    "                 from another program into ashuffle.\n"
-    "   -n,--nocheck  When reading URIs from a file, don't check to ensure that\n"
-    "                 the URIs match the given exclude rules. This option is most\n"
-    "                 helpful when shuffling songs with -f, that aren't in the\n"
-    "                 MPD library.\n"
+    "   -e,--exclude      Specify things to remove from shuffle (think blacklist).\n"
+    "   -a,--add-current  Add all songs of the album or artist which is currently\n"
+    "                     playing to the playback queue i.e., '-a album'.\n"
+    "   -w,--window       Specify the number of songs stored in the queue.\n"
+    "   -o,--only         Instead of continuously adding songs, just add 'NUMBER'\n"
+    "                     songs and then exit.\n"
+    "   -h,-?,--help      Display this help message.\n"
+    "   -f,--file         Use MPD URI's found in 'file' instead of using the entire\n"
+    "                     MPD library. You can supply `-` instead of a filename to\n"
+    "                     retrive URI's from standard in. This can be used to pipe\n"
+    "                     song URI's from another program into ashuffle.\n"
+    "   -n,--nocheck      When reading URIs from a file, don't check to ensure that\n"
+    "                     the URIs match the given exclude rules. This option is most\n"
+    "                     helpful when shuffling songs with -f, that aren't in the\n"
+    "                     MPD library.\n"
     "See included `readme.md` file for PATTERN syntax.\n", output);
 }

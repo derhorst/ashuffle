@@ -75,6 +75,40 @@ bool ruleset_accepts_uri(struct mpd_connection * mpd,
     return accepted;
 }
 
+/* Add the songs of the current album or artist to queue */
+int add_current(struct mpd_connection * mpd, struct ashuffle_options * options) {
+    struct mpd_status * status = mpd_run_status(mpd);
+    int song_pos = mpd_status_get_song_pos(status);
+    int queue_length = mpd_status_get_queue_length(status);
+    if(song_pos != -1) {
+        struct mpd_song * current_song = mpd_run_current_song(mpd);
+        const char * album_artist = mpd_song_get_tag(current_song, MPD_TAG_ALBUM_ARTIST, 0);
+        const char * album = mpd_song_get_tag(current_song, MPD_TAG_ALBUM, 0);
+
+        if (mpd_search_add_db_songs(mpd, true) != true) { mpd_perror(mpd); }
+
+        mpd_search_add_tag_constraint(mpd, MPD_OPERATOR_DEFAULT, MPD_TAG_ALBUM_ARTIST, album_artist);
+
+        options->add_current[sizeof(options->add_current)-1] = '\0';
+        if(strcmp(options->add_current, "album") == 0) {
+            mpd_search_add_tag_constraint(mpd, MPD_OPERATOR_DEFAULT, MPD_TAG_ALBUM, album);
+        }
+
+        if (mpd_search_commit(mpd) != true) { mpd_perror(mpd); }
+
+        mpd_response_finish(mpd);
+
+        /* Use mpd_status_get_queue_length as end parameter because (unsigned)-1 leads to 'Bad song index' error */
+        status = mpd_run_status(mpd);
+        if (mpd_run_move_range(mpd, queue_length, mpd_status_get_queue_length(status), song_pos+1) != true) { mpd_perror(mpd); }
+
+        if (mpd_run_play_pos(mpd, song_pos+1) != true) { mpd_perror(mpd); }
+
+        return 0;
+    }
+    return 1;
+}
+
 
 /* build the list of songs to shuffle from using
  * the supplied file. */
@@ -212,9 +246,9 @@ int try_enqueue(struct mpd_connection * mpd,
                 queue_random_song(mpd, songs);
                 /* If queue length is bigger than the queue window delete 2 tracks for every track added to get back to the window size */
                 if(queue_length > (int) queue_window) {
-                    mpd_run_delete_range(mpd, 0, 2);
+                    if (mpd_run_delete_range(mpd, 0, 2) != true) { mpd_perror(mpd); }
                 } else if(queue_length >= (int) queue_window) {
-                    mpd_run_delete(mpd, 0);
+                    if (mpd_run_delete(mpd, 0) != true) { mpd_perror(mpd); }
                 }
                 status = mpd_run_status(mpd);
             } else {
@@ -361,43 +395,50 @@ int main (int argc, char * argv[]) {
 
     check_mpd_password(mpd, mpd_host.password);
 
+
     struct shuffle_chain songs;
     shuffle_init(&songs, WINDOW_SIZE);
 
-    /* build the list of songs to shuffle through */
-    if (options.file_in != NULL) {
-        build_songs_file(mpd, &options.ruleset, options.file_in,
-                         &songs, options.check_uris);
+    /* If add current was selected no pool has to be created*/
+    if(options.add_current != NULL) {
+        add_current(mpd, &options);
     } else {
-        build_songs_mpd(mpd, &options, &songs);
-    }
-
-    if (shuffle_length(&songs) == 0) {
-        puts("Song pool is empty.");
-        return -1;
-    }
-    printf("Picking random songs out of a pool of %u.\n",
-           shuffle_length(&songs));
-
-    /* Seed the random number generator */
-    srand(time(NULL));
-
-    /* do the main action */
-    if (options.queue_only) {
-        for (unsigned i = 0; i < options.queue_only; i++) {
-            queue_random_song(mpd, &songs);
+        /* build the list of songs to shuffle through */
+        if (options.file_in != NULL) {
+            build_songs_file(mpd, &options.ruleset, options.file_in,
+                             &songs, options.check_uris);
+        } else {
+            build_songs_mpd(mpd, &options, &songs);
         }
-        printf("Added %u songs.\n", options.queue_only);
-    } else {
-        shuffle_idle(mpd, &songs, &options);
-    }
 
-    /* dispose of the rules used to build the song-list */
-    for (unsigned i = 0; i < options.ruleset.length; i++) {
-        rule_free(list_at(&options.ruleset, i));
-    }
-    list_free(&options.ruleset);
+        if (shuffle_length(&songs) == 0) {
+            puts("Song pool is empty.");
+            return -1;
+        }
+        printf("Picking random songs out of a pool of %u.\n",
+               shuffle_length(&songs));
 
+        /* Seed the random number generator */
+        srand(time(NULL));
+
+        /* do the main action */
+        if (options.queue_only) {
+            for (unsigned i = 0; i < options.queue_only; i++) {
+                queue_random_song(mpd, &songs);
+            }
+            printf("Added %u songs.\n", options.queue_only);
+        } else {
+            shuffle_idle(mpd, &songs, &options);
+        }
+
+        /* dispose of the rules used to build the song-list */
+        for (unsigned i = 0; i < options.ruleset.length; i++) {
+            rule_free(list_at(&options.ruleset, i));
+        }
+        list_free(&options.ruleset);
+
+
+    }
     /* free-up our songs */
     shuffle_free(&songs);
     mpd_connection_free(mpd);
