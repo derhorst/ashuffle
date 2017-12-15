@@ -63,6 +63,7 @@ int flush_rule(enum parse_state state,
 
 int ashuffle_init(struct ashuffle_options * opts) {
     opts->queue_only = 0;
+    opts->add_current = NULL;
     opts->queue_window = 0;
     opts->file_in = NULL;
     opts->check_uris = true;
